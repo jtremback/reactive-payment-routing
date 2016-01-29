@@ -1,0 +1,56 @@
+{
+  "name": "Althea",
+  "version": "0.0.1",
+  "private": true,
+  "scripts": {
+    "start": "mkdir -p dist & watchify -v -t babelify -d index.js -o dist/bundle.js & http-server . -p 4456 > /dev/null"
+  },
+  "dependencies": {
+    "babel": "^5.8.21",
+    "d3": "^3.5.6",
+    "randomgraph": "^0.1.3"
+  },
+  "browserify": {
+    "transform": [
+      "babelify"
+    ]
+  },
+  "devDependencies": {
+    "babel-eslint": "^3.1.5",
+    "babelify": "^5.0.4",
+    "browserify": "^6.3.0",
+    "eslint": "^0.21.2",
+    "eslint-plugin-react": "^2.3.0",
+    "forever": "^0.15.1",
+    "http-server": "^0.8.0",
+    "watchify": "^3.3.1"
+  },
+  "eslintConfig": {
+    "parser": "babel-eslint",
+    "env": {
+      "browser": true,
+      "node": true
+    },
+    "rules": {
+      "no-shadow": 0,
+      "dot-notation": 0,
+      "no-use-before-define": 0,
+      "eqeqeq": 2,
+      "semi": 0,
+      "strict": 0,
+      "curly": 2,
+      "camelcase": 0,
+      "handle-callback-err": 0,
+      "no-unused-vars": 1,
+      "no-constant-condition": 0,
+      "no-unused-expressions": 0,
+      "no-loop-func": 0,
+      "quotes": [
+        2,
+        "single"
+      ],
+      "no-underscore-dangle": 0,
+      "comma-dangle": 0
+    }
+  }
+}
