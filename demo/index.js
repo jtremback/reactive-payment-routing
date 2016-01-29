@@ -4,9 +4,9 @@ const sha3 = require('js-sha3')
 const tm = 10
 const cardLength = 10
 const cardDepth = 10
-const ttl = 5
+const ttl = 2
 const numberOfNodes = 100
-const numberOfEdges = 100
+const numberOfEdges = 300
 
 let numberOfForwards = 0
 
@@ -15,7 +15,7 @@ let network = graph2network(randomGraph.ErdosRenyi.nm(numberOfNodes, numberOfEdg
 
 let source = Math.floor(boundedRandom(1, numberOfNodes))
 let destination = Math.floor(boundedRandom(1, numberOfNodes))
-console.log(source, destination)
+console.log('numberOfNodes: ' + numberOfNodes + ', numberOfEdges: ' + numberOfEdges + ', source: ' + source + ', destination: ' + destination)
 startSimulation(network, {
   from: source,
   to: destination,
@@ -169,7 +169,7 @@ function initializePayment (self, destination, { amount, denomination }) {
 //      - channelId
 //      - receiveAmount
 function sendRoutingMessage (self, { secret, amount, denomination }) {
-  log([self.ipAddress, 'sent routing message', amount, denomination])
+  log(['node', self.ipAddress + ':', 'receive route initialization', amount, denomination])
   let hash = hashFn(secret)
 
   // Create pendingPayments entry
@@ -192,6 +192,7 @@ function sendRoutingMessage (self, { secret, amount, denomination }) {
 
     // If they have enough in their side of the channel
     if (fromChannel.theirBalance > amount) {
+      log(['node', self.ipAddress + ':', 'sending routing message', 'to', fromChannel.ipAddress, amount, denomination, 'ttl: ' + ttl])
       transmit(() => {
         forwardRoutingMessage(network.nodes[fromChannel.ipAddress], {
           hash,
@@ -361,13 +362,14 @@ function boundedRandom (min, max) {
 }
 
 let logVars = { main: 'Activity log: \n', source: 'Routing messages received by source: \n'}
-let timeout = setTimeout(dumpLog, 2000)
+let timeout = setTimeout(dumpLog, 1000)
 let start = Date.now()
 function log (args, dest) {
   logVars[dest || 'main'] += (Date.now() - start) / 1000 + 's' + ' ' + args.join(' ') + '\n'
   clearTimeout(timeout)
-  timeout = setTimeout(dumpLog, 2000)
+  timeout = setTimeout(dumpLog, 1000)
 }
+
 
 function dumpLog () {
   console.log('Number of forwards: ' + numberOfForwards)
