@@ -2,8 +2,8 @@ const randomGraph = require('randomgraph')
 const sha3 = require('js-sha3')
 
 const tm = 10
-const cardLength = 10
-const cardDepth = 10
+const cardLength = 100
+const cardDepth = 100
 const ttl = 2
 const numberOfNodes = 100
 const numberOfEdges = 300
@@ -118,6 +118,7 @@ function initNodes (network) {
 
     node.ipAddress = ipAddress
     node.routingTable = {}
+    node.cardTable = {}
     node.pendingRoutes = {}
     node.pendingPayments = {}
   }
@@ -198,6 +199,7 @@ function sendRoutingMessage (self, { secret, amount, denomination }) {
           hash,
           amount: newAmount,
           channelId: fromChannelId,
+          markedCard: makeMarkedCard(cardLength, cardDepth),
           ttl
         })
       })
@@ -228,7 +230,7 @@ function sendRoutingMessage (self, { secret, amount, denomination }) {
 //    - fromChannels
 //      - channelId
 //      - receiveAmount
-function forwardRoutingMessage (self, { hash, amount, channelId, ttl }) {
+function forwardRoutingMessage (self, { markedCard, hash, amount, channelId, ttl }) {
 
   let denomination = self.channels[channelId].denomination
   // Is source
@@ -241,6 +243,8 @@ function forwardRoutingMessage (self, { hash, amount, channelId, ttl }) {
     log(['node', self.ipAddress + ':', 'old entry is lower or equal', amount, denomination])
   } else if (ttl < 1) {
     log([self.ipAddress, 'ttl expired', amount, denomination])
+  } else if (checkMarkedCard(markedCard, hash, self.cardTable)) {
+    log([self.ipAddress, '+++++++++++++++++++++++++++marked card seen already', amount, denomination])
   } else {
     log(['node', self.ipAddress + ':', 'routing message is ok', amount, denomination])
     let toChannel = self.channels[channelId]
@@ -270,7 +274,8 @@ function forwardRoutingMessage (self, { hash, amount, channelId, ttl }) {
           amount: newAmount,
           denomination: fromChannel.denomination,
           channelId: fromChannelId,
-          ttl: ttl - 1
+          ttl: ttl - 1,
+          markedCard: markMarkedCard(markedCard, hash, self.cardTable),
         }
         numberOfForwards++
         log(['node', self.ipAddress + ':', 'forwarding routing message', 'to', fromChannel.ipAddress, amount, denomination, 'ttl: ' + ttl])
@@ -334,15 +339,17 @@ function forwardPayment (self, { hash, amount, channelId }) {
   }
 }
 
-function makeMarkedCard (cardLength, cardDepth, cardTable) {
-  return new Array(cardLength).map((item) => {
+function makeMarkedCard (cardLength, cardDepth) {
+  return new Array(cardLength).map(() => {
     return Math.floor(Math.random() * cardDepth)
   })
 }
 
 function checkMarkedCard (card, paymentHash, cardTable) {
-  let { position, value } = cardTable[paymentHash]
-  return card[position] === value
+  if (cardTable[paymentHash]) {
+    let { position, value } = cardTable[paymentHash]
+    return card[position] === value
+  }
 }
 
 function markMarkedCard (card, paymentHash, cardTable) {
