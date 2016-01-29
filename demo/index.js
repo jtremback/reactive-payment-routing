@@ -1,12 +1,25 @@
 const randomGraph = require('randomgraph')
 const sha3 = require('js-sha3')
 
+// this is the time multiplier which determines how fast a simulation runs.
 const tm = 10
+
+// These are stats for the marked card. The marked card is a randomized array
+// attached to each routing message which lets nodes determine if they have
+// forwarded it before to avoid loops.
 const cardLength = 100
 const cardDepth = 100
+
+// This is how long a routing message will stay alive.
 const ttl = 2
+
+// How many nodes and edges in the randomly generated network
 const numberOfNodes = 100
 const numberOfEdges = 300
+
+
+
+
 
 let numberOfForwards = 0
 
@@ -244,7 +257,7 @@ function forwardRoutingMessage (self, { markedCard, hash, amount, channelId, ttl
   } else if (ttl < 1) {
     log([self.ipAddress, 'ttl expired', amount, denomination])
   } else if (checkMarkedCard(markedCard, hash, self.cardTable)) {
-    log([self.ipAddress, '+++++++++++++++++++++++++++marked card seen already', amount, denomination])
+    log([self.ipAddress, 'marked card seen already', amount, denomination])
   } else {
     log(['node', self.ipAddress + ':', 'routing message is ok', amount, denomination])
     let toChannel = self.channels[channelId]
