@@ -23,8 +23,8 @@ const numberOfEdges = 300
 
 let numberOfForwards = 0
 
-let network = graph2network(randomGraph.BarabasiAlbert(numberOfNodes, 5, 5))
-// let network = graph2network(randomGraph.ErdosRenyi.nm(numberOfNodes, numberOfEdges))
+// let network = graph2network(randomGraph.BarabasiAlbert(numberOfNodes, 5, 5))
+let network = graph2network(randomGraph.ErdosRenyi.nm(numberOfNodes, numberOfEdges))
 
 let source = Math.floor(boundedRandom(1, numberOfNodes))
 let destination = Math.floor(boundedRandom(1, numberOfNodes))
@@ -206,7 +206,7 @@ function sendRoutingMessage (self, { secret, amount, denomination }) {
 
     // If they have enough in their side of the channel
     if (fromChannel.theirBalance > amount) {
-      log(['node', self.ipAddress + ':', 'sending routing message', 'to', fromChannel.ipAddress, amount, denomination, 'ttl: ' + ttl])
+      log(['node', self.ipAddress + ':', 'sending routing message', 'to', fromChannel.ipAddress, denomination, amount, 'ttl: ' + ttl])
       transmit(() => {
         forwardRoutingMessage(network.nodes[fromChannel.ipAddress], {
           hash,
@@ -248,18 +248,18 @@ function forwardRoutingMessage (self, { markedCard, hash, amount, channelId, ttl
   let denomination = self.channels[channelId].denomination
   // Is source
   if (self.pendingRoutes[hash]) {
-    log(['node', self.ipAddress + ':', 'received routing message', amount, denomination, 'ttl: ' + ttl], 'source')
+    log(['node', self.ipAddress + ':', 'received routing message', denomination, amount, 'ttl: ' + ttl], 'source')
   // Is destination
   } else if (self.pendingPayments[hash]) {
-    log(['node', self.ipAddress + ':', 'is destination', amount, denomination])
+    log(['node', self.ipAddress + ':', 'is destination', denomination, amount])
   } else if (self.routingTable[hash] && self.routingTable[hash].sendAmount <= amount) {
-    log(['node', self.ipAddress + ':', 'old entry is lower or equal', amount, denomination])
+    log(['node', self.ipAddress + ':', 'old entry is lower or equal', denomination, amount])
   } else if (ttl < 1) {
-    log([self.ipAddress, 'ttl expired', amount, denomination])
+    log([self.ipAddress, 'ttl expired', denomination, amount])
   } else if (checkMarkedCard(markedCard, hash, self.cardTable)) {
-    log([self.ipAddress, 'marked card seen already', amount, denomination])
+    log([self.ipAddress, 'marked card seen already', denomination, amount])
   } else {
-    log(['node', self.ipAddress + ':', 'routing message is ok', amount, denomination])
+    log(['node', self.ipAddress + ':', 'routing message is ok', denomination, amount])
     let toChannel = self.channels[channelId]
 
     // Create routingTable entry
@@ -291,7 +291,7 @@ function forwardRoutingMessage (self, { markedCard, hash, amount, channelId, ttl
           markedCard: markMarkedCard(markedCard, hash, self.cardTable),
         }
         numberOfForwards++
-        log(['node', self.ipAddress + ':', 'forwarding routing message', 'to', fromChannel.ipAddress, amount, denomination, 'ttl: ' + ttl])
+        log(['node', self.ipAddress + ':', 'forwarding routing message', 'to', fromChannel.ipAddress, denomination, amount, 'ttl: ' + ttl])
         transmit(() => {
           forwardRoutingMessage(network.nodes[fromChannel.ipAddress], newRoutingMessage)
         })
@@ -392,9 +392,9 @@ function log (args, dest) {
 
 
 function dumpLog () {
-  console.log('Number of forwards: ' + numberOfForwards)
   console.log(logVars['main'])
   console.log(logVars['source'])
+  console.log('Number of forwards: ' + numberOfForwards)
 }
 
 function startSimulation (network, {from, to, amount, denomination}) {
