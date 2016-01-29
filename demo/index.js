@@ -17,7 +17,7 @@ function graph2network (graph) {
         'EUR/USD': '2/1'
       },
       fee: {
-        amount: 0.01,
+        amount: Math.floor(Math.random() * 10) / 100,
         denomination: 'USD'
       },
       channels: {}
@@ -436,20 +436,21 @@ function sendRoutingMessage (self, { secret, amount, denomination }) {
 //      - channelId
 //      - receiveAmount
 function forwardRoutingMessage (self, { hash, amount, channelId, ttl }) {
-  let routingMessage = { hash, amount, channelId, denom: self.channels[channelId].denomination }
+  // let routingMessage = { hash, amount, channelId, denom: self.channels[channelId].denomination }
+  let denomination = self.channels[channelId].denomination
   // Is source
   if (self.pendingRoutes[hash]) {
-    log('#############', self.ipAddress, 'received routing message', routingMessage)
+    log('node', self.ipAddress + ':', 'received routing message', amount, denomination)
   // Is destination
   } else if (self.pendingPayments[hash]) {
-    log(self.ipAddress, 'is destination', routingMessage)
+    log('node', self.ipAddress + ':', 'IS DESTINATION!', amount, denomination)
   } else if (self.routingTable[hash] && self.routingTable[hash].sendAmount <= amount) {
-    log(self.ipAddress, 'old entry is lower or equal', routingMessage)
+    log('node', self.ipAddress + ':', 'old entry is lower or equal', amount, denomination)
   // } else if (ttl < 1) {
   //   log(self.ipAddress, 'ttl expired', routingMessage)
   } else {
     numberProcessed++
-    log(self.ipAddress, 'routing message is ok', routingMessage, 'number processed', numberProcessed)
+    log('node', self.ipAddress + ':', 'routing message is ok', amount, denomination)
     let toChannel = self.channels[channelId]
 
     // Create routingTable entry
@@ -480,7 +481,7 @@ function forwardRoutingMessage (self, { hash, amount, channelId, ttl }) {
           ttl: ttl - 1
         }
         numberOfForwards++
-        log(self.ipAddress, 'forwarding routing message', newRoutingMessage, 'to', fromChannel.ipAddress, '# forwards', numberOfForwards)
+        log('node', self.ipAddress + ':', 'forwarding routing message', 'to', fromChannel.ipAddress, amount, denomination)
         transmit(() => {
           forwardRoutingMessage(network.nodes[fromChannel.ipAddress], newRoutingMessage)
         })
@@ -563,19 +564,23 @@ function markMarkedCard (card, paymentHash, cardTable) {
   return card
 }
 
-let logVar = ''
+let logVar = 'Activity log: '
 let timeout = setTimeout(dumpLog, 1000)
+let start = Date.now()
 function log () {
   var args = Array.prototype.slice.call(arguments, 0)
-  logVar += '\n' + args.join(' ')
+  logVar += (Date.now() - start) / 1000 + 's' + ' ' + args.join(' ') + '\n'
   clearTimeout(timeout)
   timeout = setTimeout(dumpLog, 1000)
 }
 
-function dumpLog () {console.log(logVar)}
+function dumpLog () {
+  console.log('Number of forwards: ' + numberOfForwards)
+  console.log(logVar)
+}
 
-// let network = smallRandomGraph
-let network = basicGraph
+let network = smallRandomGraph
+// let network = basicGraph
 
 startSimulation(network)
 function startSimulation (network) {
