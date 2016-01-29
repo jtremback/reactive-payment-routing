@@ -385,7 +385,6 @@ let logVars = { main: 'Activity log: \n', source: 'Routing messages received by 
 let timeout = setTimeout(dumpLog, 1000)
 let start = Date.now()
 function log (args, dest) {
-  console.log(args)
   logVars[dest || 'main'] += (Date.now() - start) / 1000 + 's' + ' ' + args.join(' ') + '\n'
   clearTimeout(timeout)
   timeout = setTimeout(dumpLog, 1000)
@@ -394,8 +393,8 @@ function log (args, dest) {
 
 function dumpLog () {
   console.log('Number of forwards: ' + numberOfForwards)
-  // console.log(logVars['main'])
-  // console.log(logVars['source'])
+  console.log(logVars['main'])
+  console.log(logVars['source'])
 }
 
 function startSimulation (network, {from, to, amount, denomination}) {
