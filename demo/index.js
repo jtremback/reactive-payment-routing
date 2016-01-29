@@ -4,20 +4,32 @@ const sha3 = require('js-sha3')
 const tm = 10
 const cardLength = 10
 const cardDepth = 10
+const ttl = 1
+const numberOfNodes = 1000
+const numberOfEdges = 5000
 
 let numberOfForwards = 0
-let numberProcessed = 0
 
+let network = graph2network(randomGraph.ErdosRenyi.nm(numberOfNodes, numberOfEdges))
+
+startSimulation(network, {
+  from: Math.floor(boundedRandom(1, numberOfNodes)),
+  to: Math.floor(boundedRandom(1, numberOfNodes)),
+  amount: 1,
+  denomination: 'USD'
+})
+
+// This function turns the randomly generated graph into a network for our simulation
 function graph2network (graph) {
   let nodes = graph.nodes.reduce((acc, item, index) => {
     let node = {
       ipAddress: index,
       exchangeRates: {
-        'USD/EUR': '1/2',
-        'EUR/USD': '2/1'
+        'USD/EUR': boundedRandom(0.9, 1.3) + '/' + boundedRandom(1.9, 2.3),
+        'EUR/USD': boundedRandom(1.9, 2.3) + '/' + boundedRandom(0.9, 1.3)
       },
       fee: {
-        amount: Math.floor(Math.random() * 10) / 100,
+        amount: boundedRandom(0, .2),
         denomination: 'USD'
       },
       channels: {}
@@ -30,20 +42,22 @@ function graph2network (graph) {
   for (let edge of graph.edges) {
     let channelId = hashFn(Math.random())
     let denomination = Math.random() > 0.5 ? 'USD' : 'EUR'
+    let sourceBalance = boundedRandom(1, 10)
+    let targetBalance = boundedRandom(1, 10)
     nodes[edge.source].channels[edge.target] = {
       channelId,
       ipAddress: edge.target,
       denomination: denomination,
-      myBalance: 10,
-      theirBalance: 10
+      myBalance: sourceBalance,
+      theirBalance: targetBalance
     }
 
     nodes[edge.target].channels[edge.source] = {
       channelId,
       ipAddress: edge.source,
       denomination: denomination,
-      myBalance: 10,
-      theirBalance: 10
+      myBalance: targetBalance,
+      theirBalance: sourceBalance
     }
   }
 
@@ -59,238 +73,12 @@ function graph2network (graph) {
 
     node.channels = newChannels
   }
+
   return { nodes }
 }
 
 function hashFn (secret) {
   return sha3.keccak_224(String(secret)).slice(0, 10) // truncate for ease of reading
-}
-
-// node: {
-//          fromChannel
-//       $receiveAmount
-//            \
-//      fromChannel-$receiveAmount-(node)-$sendAmount--> toChannel
-//            /
-//       $receiveAmount
-//          fromChannel
-//   // toChannel has a one-to-many relationship with fromChannels
-//   // Another routing message that is received with the same hash and a lower
-//   // sendAmount will override this one.
-//   routingTable: {
-//     [hash]: {
-//       hash,
-//       toChannel,
-//       sendAmount, // This is how much the next step must recieve to
-//                   // convey the payment further. Non-negotiable.
-//       fromChannels: {
-//         [channelId]: {
-//           receiveAmount // We determine this
-//         }
-//       },
-//     }
-//   },
-
-//   exchangeRates: {
-//     ['asset' + '/' + 'asset']: 'numerator' + '/' + 'denominator',
-//   },
-
-//   fee: {
-//     amount,
-//     denomination
-//   }
-
-//   // Source has these
-//   // These are created by initializeRoute and checked by forwardRoutingMessage
-//   pendingRoutes: {
-//     [hash]: {
-//       secret,
-//     }
-//   },
-
-//   // Destination has these
-//   // These are created by sendRoutingMessage and checked by receivePayment
-//   pendingPayments: {
-//     [hash]: {
-//       secret,
-//     }
-//   },
-
-//   channels: {
-//     [channelId]: {
-//       channelId,
-//       ipAddress,
-//       denomination,
-//       myBalance,
-//       theirBalance
-//     }
-//   }
-
-// }
-
-// routingMessage: {
-//   hash: xyz123,
-//   amount: 100,
-//   channelId: A
-// }
-
-// hashlockedPayment: {
-//   hash: xyz123,
-//   amount: 100,
-//   channelId: A
-// }
-//
-
-//             $/€:1/1
-// (5) $10-E-$10 (1) $20-A-$10 (3) $30-D-$10 (4)
-//                €5         $40
-//                 \         /
-//                  B       C
-//                   \     /
-//                   €10 $30
-//                     (2)
-//                   €/$:2/1
-
-let smallRandomGraph = graph2network(randomGraph.BarabasiAlbert(100, 1, 1))
-
-let basicGraph = {
-  nodes: {
-    0: {
-      ipAddress: 0,
-      exchangeRates: {
-        'USD/EUR': '1/1',
-        'EUR/USD': '1/1'
-      },
-      fee: {
-        amount: 0.00,
-        denomination: 'USD'
-      },
-      channels: {
-        A: {
-          channelId: 'A',
-          ipAddress: 2,
-          denomination: 'USD',
-          myBalance: 20,
-          theirBalance: 10
-        },
-        B: {
-          channelId: 'B',
-          ipAddress: 1,
-          denomination: 'EUR',
-          myBalance: 5,
-          theirBalance: 10
-        },
-        E: {
-          channelId: 'E',
-          ipAddress: 4,
-          denomination: 'USD',
-          myBalance: 10,
-          theirBalance: 10
-        }
-      }
-    },
-    1: {
-      ipAddress: 1,
-      exchangeRates: {
-        'USD/EUR': '1/2',
-        'EUR/USD': '2/1'
-      },
-      fee: {
-        amount: 0.00,
-        denomination: 'USD'
-      },
-      channels: {
-        B: {
-          channelId: 'B',
-          ipAddress: 0,
-          denomination: 'EUR',
-          myBalance: 10,
-          theirBalance: 5
-        },
-        C: {
-          channelId: 'C',
-          ipAddress: 2,
-          denomination: 'USD',
-          myBalance: 30,
-          theirBalance: 40
-        }
-      }
-    },
-    2: {
-      ipAddress: 2,
-      exchangeRates: {
-        'USD/EUR': '1/1',
-        'EUR/USD': '1/1'
-      },
-      fee: {
-        amount: 0.00,
-        denomination: 'USD'
-      },
-      channels: {
-        A: {
-          channelId: 'A',
-          ipAddress: 0,
-          denomination: 'USD',
-          myBalance: 10,
-          theirBalance: 20
-        },
-        C: {
-          channelId: 'C',
-          ipAddress: 1,
-          denomination: 'USD',
-          myBalance: 40,
-          theirBalance: 30
-        },
-        D: {
-          channelId: 'D',
-          ipAddress: 3,
-          denomination: 'USD',
-          myBalance: 30,
-          theirBalance: 10
-        }
-      }
-    },
-    3: {
-      ipAddress: 3,
-      exchangeRates: {
-        'USD/EUR': '1/1',
-        'EUR/USD': '1/1'
-      },
-      fee: {
-        amount: 0.00,
-        denomination: 'USD'
-      },
-      channels: {
-        D: {
-          channelId: 'D',
-          ipAddress: 2,
-          denomination: 'USD',
-          myBalance: 10,
-          theirBalance: 30
-        }
-      }
-    },
-    4: {
-      ipAddress: 4,
-      exchangeRates: {
-        'USD/EUR': '1/1',
-        'EUR/USD': '1/1'
-      },
-      fee: {
-        amount: 0.00,
-        denomination: 'USD'
-      },
-      channels: {
-        E: {
-          channelId: 'E',
-          ipAddress: 0,
-          denomination: 'USD',
-          myBalance: 10,
-          theirBalance: 10
-        }
-      }
-    }
-  }
 }
 
 function channelChecker (nodes) {
@@ -377,7 +165,7 @@ function initializePayment (self, destination, { amount, denomination }) {
 //      - channelId
 //      - receiveAmount
 function sendRoutingMessage (self, { secret, amount, denomination }) {
-  log(self.ipAddress, 'sent routing message', { secret, amount, denomination })
+  log([self.ipAddress, 'sent routing message', { secret, amount, denomination }])
   let hash = hashFn(secret)
 
   // Create pendingPayments entry
@@ -405,7 +193,7 @@ function sendRoutingMessage (self, { secret, amount, denomination }) {
           hash,
           amount: newAmount,
           channelId: fromChannelId,
-          ttl: 5
+          ttl
         })
       })
 
@@ -436,21 +224,19 @@ function sendRoutingMessage (self, { secret, amount, denomination }) {
 //      - channelId
 //      - receiveAmount
 function forwardRoutingMessage (self, { hash, amount, channelId, ttl }) {
-  // let routingMessage = { hash, amount, channelId, denom: self.channels[channelId].denomination }
   let denomination = self.channels[channelId].denomination
   // Is source
   if (self.pendingRoutes[hash]) {
-    log('node', self.ipAddress + ':', 'received routing message', amount, denomination)
+    log(['node', self.ipAddress + ':', 'received routing message', amount, denomination, ttl])
   // Is destination
   } else if (self.pendingPayments[hash]) {
-    log('node', self.ipAddress + ':', 'IS DESTINATION!', amount, denomination)
+    log(['node', self.ipAddress + ':', 'IS DESTINATION!', amount, denomination, numberOfForwards], 'dest')
   } else if (self.routingTable[hash] && self.routingTable[hash].sendAmount <= amount) {
-    log('node', self.ipAddress + ':', 'old entry is lower or equal', amount, denomination)
-  // } else if (ttl < 1) {
-  //   log(self.ipAddress, 'ttl expired', routingMessage)
+    log(['node', self.ipAddress + ':', 'old entry is lower or equal', amount, denomination, ttl])
+  } else if (ttl < 1) {
+    log([self.ipAddress, 'ttl expired', amount, denomination])
   } else {
-    numberProcessed++
-    log('node', self.ipAddress + ':', 'routing message is ok', amount, denomination)
+    log(['node', self.ipAddress + ':', 'routing message is ok', amount, denomination])
     let toChannel = self.channels[channelId]
 
     // Create routingTable entry
@@ -481,7 +267,7 @@ function forwardRoutingMessage (self, { hash, amount, channelId, ttl }) {
           ttl: ttl - 1
         }
         numberOfForwards++
-        log('node', self.ipAddress + ':', 'forwarding routing message', 'to', fromChannel.ipAddress, amount, denomination)
+        log(['node', self.ipAddress + ':', 'forwarding routing message', 'to', fromChannel.ipAddress, amount, denomination])
         transmit(() => {
           forwardRoutingMessage(network.nodes[fromChannel.ipAddress], newRoutingMessage)
         })
@@ -503,7 +289,7 @@ function forwardRoutingMessage (self, { hash, amount, channelId, ttl }) {
 // 1. Look up in routing table
 // 2. Send correct amount to the channel
 function sendPayment (self, { hash, channelId }) {
-  log('sendPayment')
+  log(['sendPayment'])
   let route = self.routingTable[hash]
   let fromChannel = route.fromChannels[channelId]
 
@@ -522,14 +308,14 @@ function sendPayment (self, { hash, channelId }) {
 //    - If we are, delete from pendingPayments and output.
 //    - If not, forward.
 function forwardPayment (self, { hash, amount, channelId }) {
-  log('forwardPayment', { hash, amount, channelId })
+  log(['forwardPayment', { hash, amount, channelId }])
   let route = self.routingTable[hash]
   let fromChannel = route.fromChannels[channelId]
 
   if (fromChannel.amount === amount) {
     // Are we the destination?
     if (self.pendingPayments[hash]) {
-      log('received payment')
+      log(['received payment'])
     } else {
       transmit(() => {
         forwardPayment(network.nodes[fromChannel.ipAddress], {
@@ -564,30 +350,31 @@ function markMarkedCard (card, paymentHash, cardTable) {
   return card
 }
 
-let logVar = 'Activity log: '
-let timeout = setTimeout(dumpLog, 1000)
+function boundedRandom (min, max) {
+  let diff = max - min
+  return min + (Math.random() * diff)
+}
+
+let logVars = { main: 'Activity log: ', dest: 'Routing messages received by destination: '}
+let timeout = setTimeout(dumpLog, 2000)
 let start = Date.now()
-function log () {
-  var args = Array.prototype.slice.call(arguments, 0)
-  logVar += (Date.now() - start) / 1000 + 's' + ' ' + args.join(' ') + '\n'
+function log (args, dest) {
+  logVars[dest || 'main'] += (Date.now() - start) / 1000 + 's' + ' ' + args.join(' ') + '\n'
   clearTimeout(timeout)
-  timeout = setTimeout(dumpLog, 1000)
+  timeout = setTimeout(dumpLog, 2000)
 }
 
 function dumpLog () {
   console.log('Number of forwards: ' + numberOfForwards)
-  console.log(logVar)
+  console.log(logVars['main'])
+  console.log(logVars['dest'])
 }
 
-let network = smallRandomGraph
-// let network = basicGraph
+function startSimulation (network, {from, to, amount, denomination}) {
 
-startSimulation(network)
-function startSimulation (network) {
-
-  channelChecker(basicGraph.nodes)
+  channelChecker(network.nodes)
 
   initNodes(network)
 
-  initializePayment(network.nodes[4], network.nodes[3], { amount: 1, denomination: 'USD'})
+  initializePayment(network.nodes[from], network.nodes[to], { amount, denomination})
 }
