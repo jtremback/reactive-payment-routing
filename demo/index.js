@@ -1,8 +1,7 @@
-// const ui = require('./ui.js')
 const randomGraph = require('randomgraph')
 const sha3 = require('js-sha3')
 
-const tm = 100
+const tm = 10
 const cardLength = 10
 const cardDepth = 10
 
@@ -67,8 +66,7 @@ function hashFn (secret) {
   return sha3.keccak_224(String(secret)).slice(0, 10) // truncate for ease of reading
 }
 
-
-
+// node: {
 //          fromChannel
 //       $receiveAmount
 //            \
@@ -76,11 +74,9 @@ function hashFn (secret) {
 //            /
 //       $receiveAmount
 //          fromChannel
-//   toChannel has a one-to-many relationship with fromChannels
-//   Another routing message that is received with the same hash and a lower
-//   sendAmount will override this one.
-
-// node: {
+//   // toChannel has a one-to-many relationship with fromChannels
+//   // Another routing message that is received with the same hash and a lower
+//   // sendAmount will override this one.
 //   routingTable: {
 //     [hash]: {
 //       hash,
@@ -129,6 +125,7 @@ function hashFn (secret) {
 //       theirBalance
 //     }
 //   }
+
 // }
 
 // routingMessage: {
@@ -142,7 +139,17 @@ function hashFn (secret) {
 //   amount: 100,
 //   channelId: A
 // }
+//
 
+//             $/€:1/1
+// (5) $10-E-$10 (1) $20-A-$10 (3) $30-D-$10 (4)
+//                €5         $40
+//                 \         /
+//                  B       C
+//                   \     /
+//                   €10 $30
+//                     (2)
+//                   €/$:2/1
 
 let smallRandomGraph = graph2network(randomGraph.BarabasiAlbert(100, 1, 1))
 
@@ -370,7 +377,7 @@ function initializePayment (self, destination, { amount, denomination }) {
 //      - channelId
 //      - receiveAmount
 function sendRoutingMessage (self, { secret, amount, denomination }) {
-  console.log(self.ipAddress, 'sent routing message', { secret, amount, denomination })
+  log(self.ipAddress, 'sent routing message', { secret, amount, denomination })
   let hash = hashFn(secret)
 
   // Create pendingPayments entry
@@ -432,17 +439,17 @@ function forwardRoutingMessage (self, { hash, amount, channelId, ttl }) {
   let routingMessage = { hash, amount, channelId, denom: self.channels[channelId].denomination }
   // Is source
   if (self.pendingRoutes[hash]) {
-    console.log('#############', self.ipAddress, 'received routing message', routingMessage)
+    log('#############', self.ipAddress, 'received routing message', routingMessage)
   // Is destination
   } else if (self.pendingPayments[hash]) {
-    console.log(self.ipAddress, 'is destination', routingMessage)
+    log(self.ipAddress, 'is destination', routingMessage)
   } else if (self.routingTable[hash] && self.routingTable[hash].sendAmount <= amount) {
-    console.log(self.ipAddress, 'old entry is lower or equal', routingMessage)
+    log(self.ipAddress, 'old entry is lower or equal', routingMessage)
   // } else if (ttl < 1) {
-  //   console.log(self.ipAddress, 'ttl expired', routingMessage)
+  //   log(self.ipAddress, 'ttl expired', routingMessage)
   } else {
     numberProcessed++
-    console.log(self.ipAddress, 'routing message is ok', routingMessage, 'number processed', numberProcessed)
+    log(self.ipAddress, 'routing message is ok', routingMessage, 'number processed', numberProcessed)
     let toChannel = self.channels[channelId]
 
     // Create routingTable entry
@@ -473,7 +480,7 @@ function forwardRoutingMessage (self, { hash, amount, channelId, ttl }) {
           ttl: ttl - 1
         }
         numberOfForwards++
-        console.log(self.ipAddress, 'forwarding routing message', newRoutingMessage, 'to', fromChannel.ipAddress, '# forwards', numberOfForwards)
+        log(self.ipAddress, 'forwarding routing message', newRoutingMessage, 'to', fromChannel.ipAddress, '# forwards', numberOfForwards)
         transmit(() => {
           forwardRoutingMessage(network.nodes[fromChannel.ipAddress], newRoutingMessage)
         })
@@ -495,7 +502,7 @@ function forwardRoutingMessage (self, { hash, amount, channelId, ttl }) {
 // 1. Look up in routing table
 // 2. Send correct amount to the channel
 function sendPayment (self, { hash, channelId }) {
-  console.log('sendPayment')
+  log('sendPayment')
   let route = self.routingTable[hash]
   let fromChannel = route.fromChannels[channelId]
 
@@ -514,14 +521,14 @@ function sendPayment (self, { hash, channelId }) {
 //    - If we are, delete from pendingPayments and output.
 //    - If not, forward.
 function forwardPayment (self, { hash, amount, channelId }) {
-  console.log('forwardPayment', { hash, amount, channelId })
+  log('forwardPayment', { hash, amount, channelId })
   let route = self.routingTable[hash]
   let fromChannel = route.fromChannels[channelId]
 
   if (fromChannel.amount === amount) {
     // Are we the destination?
     if (self.pendingPayments[hash]) {
-      console.log('received payment')
+      log('received payment')
     } else {
       transmit(() => {
         forwardPayment(network.nodes[fromChannel.ipAddress], {
@@ -556,9 +563,21 @@ function markMarkedCard (card, paymentHash, cardTable) {
   return card
 }
 
+let logVar = ''
+let timeout = setTimeout(dumpLog, 1000)
+function log () {
+  var args = Array.prototype.slice.call(arguments, 0)
+  logVar += '\n' + args.join(' ')
+  clearTimeout(timeout)
+  timeout = setTimeout(dumpLog, 1000)
+}
+
+function dumpLog () {console.log(logVar)}
+
 // let network = smallRandomGraph
 let network = basicGraph
 
+startSimulation(network)
 function startSimulation (network) {
 
   channelChecker(basicGraph.nodes)
@@ -567,4 +586,3 @@ function startSimulation (network) {
 
   initializePayment(network.nodes[4], network.nodes[3], { amount: 1, denomination: 'USD'})
 }
-
