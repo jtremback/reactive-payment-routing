@@ -6,12 +6,12 @@ const tm = 10
 
 // These are stats for the marked card. The marked card is a randomized array
 // attached to each routing message which lets nodes determine if they have
-// forwarded it before to avoid loops.
-const cardLength = 100
-const cardDepth = 100
+// forwarded it before to avoid loops. It seems fairly useless tbh.
+const cardLength = 30
+const cardDepth = 30
 
 // This is how long a routing message will stay alive.
-const ttl = 2
+const ttl = 3
 
 // How many nodes and edges in the randomly generated network
 const numberOfNodes = 100
@@ -23,12 +23,12 @@ const numberOfEdges = 300
 
 let numberOfForwards = 0
 
-// let network = graph2network(randomGraph.BarabasiAlbert(numberOfNodes, 5, 5))
-let network = graph2network(randomGraph.ErdosRenyi.nm(numberOfNodes, numberOfEdges))
+let network = graph2network(randomGraph.BarabasiAlbert(numberOfNodes, 5, 5))
+// let network = graph2network(randomGraph.ErdosRenyi.nm(numberOfNodes, numberOfEdges))
 
 let source = Math.floor(boundedRandom(1, numberOfNodes))
 let destination = Math.floor(boundedRandom(1, numberOfNodes))
-console.log('numberOfNodes: ' + numberOfNodes + ', numberOfEdges: ' + numberOfEdges + ', source: ' + source + ', destination: ' + destination)
+console.log('source: ' + source + ', destination: ' + destination)
 startSimulation(network, {
   from: source,
   to: destination,
@@ -385,6 +385,7 @@ let logVars = { main: 'Activity log: \n', source: 'Routing messages received by 
 let timeout = setTimeout(dumpLog, 1000)
 let start = Date.now()
 function log (args, dest) {
+  console.log(args)
   logVars[dest || 'main'] += (Date.now() - start) / 1000 + 's' + ' ' + args.join(' ') + '\n'
   clearTimeout(timeout)
   timeout = setTimeout(dumpLog, 1000)
@@ -393,8 +394,8 @@ function log (args, dest) {
 
 function dumpLog () {
   console.log('Number of forwards: ' + numberOfForwards)
-  console.log(logVars['main'])
-  console.log(logVars['source'])
+  // console.log(logVars['main'])
+  // console.log(logVars['source'])
 }
 
 function startSimulation (network, {from, to, amount, denomination}) {
