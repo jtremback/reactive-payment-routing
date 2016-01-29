@@ -4,17 +4,21 @@ const sha3 = require('js-sha3')
 const tm = 10
 const cardLength = 10
 const cardDepth = 10
-const ttl = 1
-const numberOfNodes = 1000
-const numberOfEdges = 5000
+const ttl = 5
+const numberOfNodes = 100
+const numberOfEdges = 100
 
 let numberOfForwards = 0
 
+// let network = graph2network(randomGraph.BarabasiAlbert(numberOfNodes, 5, 5))
 let network = graph2network(randomGraph.ErdosRenyi.nm(numberOfNodes, numberOfEdges))
 
+let source = Math.floor(boundedRandom(1, numberOfNodes))
+let destination = Math.floor(boundedRandom(1, numberOfNodes))
+console.log(source, destination)
 startSimulation(network, {
-  from: Math.floor(boundedRandom(1, numberOfNodes)),
-  to: Math.floor(boundedRandom(1, numberOfNodes)),
+  from: source,
+  to: destination,
   amount: 1,
   denomination: 'USD'
 })
@@ -165,7 +169,7 @@ function initializePayment (self, destination, { amount, denomination }) {
 //      - channelId
 //      - receiveAmount
 function sendRoutingMessage (self, { secret, amount, denomination }) {
-  log([self.ipAddress, 'sent routing message', { secret, amount, denomination }])
+  log([self.ipAddress, 'sent routing message', amount, denomination])
   let hash = hashFn(secret)
 
   // Create pendingPayments entry
@@ -224,15 +228,16 @@ function sendRoutingMessage (self, { secret, amount, denomination }) {
 //      - channelId
 //      - receiveAmount
 function forwardRoutingMessage (self, { hash, amount, channelId, ttl }) {
+
   let denomination = self.channels[channelId].denomination
   // Is source
   if (self.pendingRoutes[hash]) {
-    log(['node', self.ipAddress + ':', 'received routing message', amount, denomination, ttl])
+    log(['node', self.ipAddress + ':', 'received routing message', amount, denomination, 'ttl: ' + ttl], 'source')
   // Is destination
   } else if (self.pendingPayments[hash]) {
-    log(['node', self.ipAddress + ':', 'IS DESTINATION!', amount, denomination, numberOfForwards], 'dest')
+    log(['node', self.ipAddress + ':', 'is destination', amount, denomination])
   } else if (self.routingTable[hash] && self.routingTable[hash].sendAmount <= amount) {
-    log(['node', self.ipAddress + ':', 'old entry is lower or equal', amount, denomination, ttl])
+    log(['node', self.ipAddress + ':', 'old entry is lower or equal', amount, denomination])
   } else if (ttl < 1) {
     log([self.ipAddress, 'ttl expired', amount, denomination])
   } else {
@@ -267,7 +272,7 @@ function forwardRoutingMessage (self, { hash, amount, channelId, ttl }) {
           ttl: ttl - 1
         }
         numberOfForwards++
-        log(['node', self.ipAddress + ':', 'forwarding routing message', 'to', fromChannel.ipAddress, amount, denomination])
+        log(['node', self.ipAddress + ':', 'forwarding routing message', 'to', fromChannel.ipAddress, amount, denomination, 'ttl: ' + ttl])
         transmit(() => {
           forwardRoutingMessage(network.nodes[fromChannel.ipAddress], newRoutingMessage)
         })
@@ -355,7 +360,7 @@ function boundedRandom (min, max) {
   return min + (Math.random() * diff)
 }
 
-let logVars = { main: 'Activity log: ', dest: 'Routing messages received by destination: '}
+let logVars = { main: 'Activity log: \n', source: 'Routing messages received by source: \n'}
 let timeout = setTimeout(dumpLog, 2000)
 let start = Date.now()
 function log (args, dest) {
@@ -367,7 +372,7 @@ function log (args, dest) {
 function dumpLog () {
   console.log('Number of forwards: ' + numberOfForwards)
   console.log(logVars['main'])
-  console.log(logVars['dest'])
+  console.log(logVars['source'])
 }
 
 function startSimulation (network, {from, to, amount, denomination}) {
