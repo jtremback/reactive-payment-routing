@@ -14,6 +14,8 @@ In AODV, when nodes need to send a packet to a destination they have never sent 
 
 ### Protocol
 
+*To run a simulation of the protocol, go into `/demo` and type `npm start`, then go to localhost:4456 and open the console.*
+
 Since our nodes are presumed to already have connectivity, we can skip the **Route Request Message**. Our protocol has only one type of message, which we'll call the **Routing Message**. A node's neighbors are those nodes that it has payment channels open with.
 
 When a node wishes to send a multihop payment, it first sends a **Payment Initialization** to the recipient.
@@ -75,6 +77,8 @@ If a node receives a **Routing Message** with the same **Hash** again, it will c
 
 The **Routing Messages** propagate until they reach the sender of the payment. At this point, the sender can continue to wait, because it may receive another **Routing Message** with a lower **Amount**. If the sender is satisfied with the **Amount**, it then uses the **Hash** to make a hashlocked payment to the neighbor that sent it the routing message. This neighbor then checks their routing table and makes a payment to their corresponding neighbor. The hashlocked payments continue until they reach the destination, at which point it unlocks the payment with the secret, letting the rest of the chain unlock their transactions as well (as explained in "Multiphop Channels" above).
 
+![Routing phase](routing.png)
+![Payment phase](payment.png)
 
 ### Anonymity vs Network Congestion
 
