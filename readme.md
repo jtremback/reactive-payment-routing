@@ -1,5 +1,7 @@
 # Reactive Payment Routing
 
+*To run a simulation of the protocol go to https://tonicdev.com/jehan/reactive-payment-routing, or go into `/demo` and type `npm start`, then go to localhost:4456 and open the console.*
+
 If you're going to have a multihop payment network, you need some way to route payments. How does Alice know that Bob is the best person to go through to reach Charlie? Perhaps Benjamin also has channels open with Alice and Charlie but he charges a lower fee. There needs to be some way to find the lowest-priced route to a payment's destination. This problem is very similar to the problem of routing packets on the internet, so we will look at some possible solutions from that domain.
 
 There are two main categories of ad-hoc routing protocols- proactive and reactive.
@@ -13,8 +15,6 @@ For most paymsents, a few hundred milliseconds to establish a route is not a hug
 In AODV, when nodes need to send a packet to a destination they have never sent packets to, they send out a **Route Request Message**, which is flooded through the network (with some optimizations). When the destination recieves this message, it sends a **Route Reply Message**. Intermediary nodes along the path cache the next hops for the source and the destination, thereby storing only the routing information they are likely to need often.
 
 ### Protocol
-
-*To run a simulation of the protocol, go into `/demo` and type `npm start`, then go to localhost:4456 and open the console.*
 
 Since our nodes are presumed to already have connectivity, we can skip the **Route Request Message**. Our protocol has only one type of message, which we'll call the **Routing Message**. A node's neighbors are those nodes that it has payment channels open with.
 
