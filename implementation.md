@@ -48,7 +48,7 @@ Every X seconds, the queue is emptied.
 
 ## Node identification
 
-The routing table needs to store an entry about who the next-hop node is. Using the same ethereum addresses that are used to sign messages is probably an ok way to identify nodes. Nodes also need to be able to send each other messages, however clients are not able to receive messages. For this reason, it would probably be better to have a secondary mapping of ethereum addresses to IP addresses of server nodes. This way 
+The routing table needs to store an entry about who the next-hop node is. Using the same ethereum addresses that are used to sign messages is probably an ok way to identify nodes.
 
 ## Entities
 
