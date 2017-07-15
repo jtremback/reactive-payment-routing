@@ -26,7 +26,7 @@ A---B---D---E
 
 where A and E are client nodes and B, C and D are servers.
 
-When A wants to send D a payment, A first sends E the payment secret and the amount. D then hashes the payment secret and sends C and E the routing message. C and E then send it to B. A polls B with the payment hash. When B receives the a routing message from C or E, it passes it on to A. When A is satisified that it has waited long enough to get the best route, it sends the payment as detailed in readme.md.
+When A wants to send D a payment, A first sends E the payment secret and the amount. E then hashes the payment secret and sends C and D the routing message. C and D then send it to B. A polls B with the payment hash. When B receives a routing message from C or E, it passes it on to A and puts the best entry in its routing table. When A is satisified that it has waited long enough to get the best route, it sends the payment as detailed in readme.md.
 
 ## Payment initialization delivery
 
